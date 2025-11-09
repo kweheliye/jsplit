@@ -1,4 +1,4 @@
-package main
+package jsplit
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/kweheliye/jsplit/pkg/cloud"
 )
 
 const (
@@ -197,6 +199,8 @@ const (
 	List
 )
 
+type ListAddFunc func(item []byte) error
+
 var emptyListBytes = []byte{}
 
 // ParseVal parses a json value
@@ -345,5 +349,58 @@ func SplitStream(ctx context.Context, rd ByteStream, dir string) error {
 
 	elapsed := time.Since(start)
 	fmt.Printf("Completed in %f seconds", elapsed.Seconds())
+	return nil
+}
+
+// SplitFile processes a json file reading it and sending json lists in the root of the json document to jsonl
+func Split(filename, outputPath string, overwrite bool) error {
+	var (
+		fi    os.FileInfo
+		err   error
+		rd    *AsyncReader
+		perms os.FileMode = 0o755
+	)
+
+	// create output path if it doesn't exist
+	// or if it does exist, remove it if overwrite is true
+	if !cloud.IsCloudURI(outputPath) {
+		fi, err = os.Stat(outputPath)
+
+		switch {
+		// if we ecountered an error and it's not a "file does not exist" error, exit
+		case err != nil && !os.IsNotExist(err):
+			return err
+		// if the file exists and it's a directory, exit unless overwrite is true
+		case err == nil && fi.IsDir() && !overwrite:
+			return fmt.Errorf("error: %s already exists", outputPath)
+		// if the file exists and it's a directory, remove it if overwrite is true
+		case err == nil && fi.IsDir() && overwrite:
+			err = os.RemoveAll(outputPath)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = os.MkdirAll(outputPath, perms)
+		if err != nil {
+			return err
+		}
+	}
+
+	rd, err = AsyncReaderFromFile(filename, 1024*1024)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Reading %s\n", filename)
+
+	ctx := context.Background()
+	ctx = rd.Start(ctx)
+
+	err = SplitStream(ctx, rd, outputPath)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

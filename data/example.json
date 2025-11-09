@@ -1,0 +1,13 @@
+{
+  "string": "val1",
+  "number": 0,
+  "bool": true,
+  "object": {
+    "key": "value"
+  },
+  "list": [
+    {"idx": 0, "name":  "alex"},
+    {"idx": 1, "name":  "brian"},
+    {"idx": 2, "name":  "charles"},
+  ]
+}

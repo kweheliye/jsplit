@@ -1,4 +1,4 @@
-package main
+package jsplit
 
 // ByteStack is a simple stack of bytes
 type ByteStack struct {

@@ -1,0 +1,6 @@
+{
+	"string":"val1",
+	"number":0,
+	"bool":true,
+	"object":{"key":"value"}
+}
